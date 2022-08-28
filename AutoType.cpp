@@ -3,107 +3,107 @@
 // This file is public domain software.
 #include "Typaste.hpp"
 
-static inline void MyKeybdEvent(WORD wVk, WORD wScan, DWORD dwFlags, ULONG_PTR dwExtra)
+const UINT cMaxKL = 10;
+
+inline void ChangeModifier(WORD modifier, bool keyUp, DWORD delay, LPCWSTR sound) 
 {
-    INPUT input;
-    input.type = INPUT_KEYBOARD;
-    input.ki.wVk = wVk;
-    input.ki.wScan = wScan;
-    input.ki.dwFlags = dwFlags;
-    input.ki.time = 0;
-    input.ki.dwExtraInfo = dwExtra;
-    SendInput(1, &input, sizeof(input));
+    if (sound && *sound)
+    {
+        PlaySoundW(sound, NULL, SND_ASYNC | SND_FILENAME | SND_NODEFAULT);
+    }
+    Sleep(delay);
+    MyKeybdEvent(modifier, 0, keyUp ? KEYEVENTF_KEYUP : 0, 0);
+    Sleep(delay);
 }
 
-void WaitModifierRelease(DWORD dwDelay)
+inline void PressAndRelease(WORD key, DWORD pressDelay, DWORD postDelay, LPCWSTR sound)
 {
-    while (GetAsyncKeyState(VK_SHIFT) < 0 ||
-           GetAsyncKeyState(VK_CONTROL) < 0 ||
-           GetAsyncKeyState(VK_MENU) < 0)
+    if (sound && *sound)
     {
-        Sleep(dwDelay);
+        PlaySoundW(sound, NULL, SND_ASYNC | SND_FILENAME | SND_NODEFAULT);
+    }
+    Sleep(pressDelay);
+    MyKeybdEvent(key, 0, 0, 0);
+    Sleep(pressDelay);
+    MyKeybdEvent(key, 0, KEYEVENTF_KEYUP, 0);
+    Sleep(postDelay);
+}
+
+inline void SetKeyboardLayout(HKL layout, DWORD delay)
+{
+    HKL hkl;
+
+    for (INT k = 0; k < cMaxKL; ++k)
+    {
+        hkl = GetKeyboardLayout(0);
+        if (hkl == layout)
+            break;
+
+        Sleep(delay);
+        MyKeybdEvent(VK_LSHIFT, 0, 0, 0);
+        Sleep(delay);
+        MyKeybdEvent(VK_LMENU, 0, 0, 0);
+        Sleep(delay);
+        MyKeybdEvent(VK_LMENU, 0, KEYEVENTF_KEYUP, 0);
+        Sleep(delay);
+        MyKeybdEvent(VK_LSHIFT, 0, KEYEVENTF_KEYUP, 0);
+        Sleep(delay);
     }
 }
 
-void CtrlV(DWORD dwDelay)
+void AutoType(const WCHAR *pszText, typaste_config &config)
 {
-    MyKeybdEvent(VK_LCONTROL, 0, 0, 0);
-    Sleep(dwDelay);
-
-    MyKeybdEvent(L'V', 0, 0, 0);
-    Sleep(dwDelay);
-
-    MyKeybdEvent(L'V', 0, KEYEVENTF_KEYUP, 0);
-    Sleep(dwDelay);
-
-    MyKeybdEvent(VK_LCONTROL, 0, KEYEVENTF_KEYUP, 0);
-    Sleep(dwDelay);
-}
-
-void AutoType(const WCHAR *psz, DWORD dwDelay, LPCWSTR pszSound)
-{
-    const UINT cMaxKL = 10;
     HKL ahkl[cMaxKL];
     UINT chkl = GetKeyboardLayoutList(cMaxKL, ahkl);
     HKL hklOld = GetKeyboardLayout(0);
+    BYTE lastFlags = 0;
+    LPCWSTR pszModifierDownSound = config.sound_config.modifier_down_key();
+    LPCWSTR pszModifierUpSound = config.sound_config.modifier_up_key();
 
-    for (; *psz ;++psz)
+    for (; *pszText ;++pszText)
     {
         if (GetAsyncKeyState(VK_ESCAPE) < 0)
             break;
 
-        switch (*psz)
+        LPCWSTR pszSound = NULL;
+
+        switch (*pszText)
+        {
+        case L'\n':
+            pszSound = config.sound_config.enter_key();
+            break;
+        case L' ':
+            pszSound = config.sound_config.space_key();
+            break;
+        default:
+            pszSound = config.sound_config.get_key();
+            break;
+        }
+
+        switch (*pszText)
         {
         case L'\r':
             continue;
         case L'\n':
-            MyKeybdEvent(VK_RETURN, 0, 0, 0);
-            Sleep(dwDelay);
-            MyKeybdEvent(VK_RETURN, 0, KEYEVENTF_KEYUP, 0);
-            Sleep(dwDelay);
+            PressAndRelease(VK_RETURN, config.modifier_delay, config.key_delay(), pszSound);
             continue;
         case L'\t':
-            MyKeybdEvent(VK_TAB, 0, 0, 0);
-            Sleep(dwDelay);
-            MyKeybdEvent(VK_TAB, 0, KEYEVENTF_KEYUP, 0);
-            Sleep(dwDelay);
+            PressAndRelease(VK_TAB, config.modifier_delay, config.key_delay(), pszSound);
             continue;
-        }
-
-        if (pszSound && *pszSound)
-        {
-            PlaySoundW(pszSound, NULL,
-                       SND_ASYNC | SND_FILENAME | SND_NODEFAULT);
-            Sleep(dwDelay);
         }
 
         SHORT s = -1;
         UINT i;
         for (i = 0; i < chkl; ++i)
         {
-            s = VkKeyScanExW(*psz, ahkl[i]);
+            s = VkKeyScanExW(*pszText, ahkl[i]);
             if (s != -1)
                 break;
         }
 
-        HKL hkl = NULL;
         if (s != -1)
         {
-            for (INT k = 0; k < cMaxKL; ++k)
-            {
-                hkl = GetKeyboardLayout(0);
-                if (hkl == ahkl[i])
-                    break;
-
-                MyKeybdEvent(VK_LSHIFT, 0, 0, 0);
-                Sleep(dwDelay);
-                MyKeybdEvent(VK_LMENU, 0, 0, 0);
-                Sleep(dwDelay);
-                MyKeybdEvent(VK_LMENU, 0, KEYEVENTF_KEYUP, 0);
-                Sleep(dwDelay);
-                MyKeybdEvent(VK_LSHIFT, 0, KEYEVENTF_KEYUP, 0);
-                Sleep(dwDelay);
-            }
+            SetKeyboardLayout(ahkl[i], config.modifier_delay);
         }
 
         BYTE vk = LOBYTE(s);
@@ -116,65 +116,50 @@ void AutoType(const WCHAR *psz, DWORD dwDelay, LPCWSTR pszSound)
             GUITHREADINFO info = { sizeof(info) };
             GetGUIThreadInfo(tid, &info);
             DWORD_PTR dwResult;
-            SendMessageTimeoutW(info.hwndFocus, WM_CHAR, *psz, 0,
+            SendMessageTimeoutW(info.hwndFocus, WM_CHAR, *pszText, 0,
                                 SMTO_ABORTIFHUNG, 2000, &dwResult);
-            Sleep(dwDelay);
+            Sleep(config.modifier_delay);
+
+            continue;
         }
-        else
+
+        bool modifierWasSet = lastFlags & 1;
+        if (((flags & 1) == 1) != modifierWasSet)
         {
-            if (flags & 1)
-            {
-                MyKeybdEvent(VK_LSHIFT, 0, 0, 0);
-                Sleep(dwDelay);
-            }
-            if (flags & 2)
-            {
-                MyKeybdEvent(VK_LCONTROL, 0, 0, 0);
-                Sleep(dwDelay);
-            }
-            if (flags & 4)
-            {
-                MyKeybdEvent(VK_LMENU, 0, 0, 0);
-                Sleep(dwDelay);
-            }
-
-            MyKeybdEvent(vk, 0, 0, 0);
-            Sleep(dwDelay);
-            MyKeybdEvent(vk, 0, KEYEVENTF_KEYUP, 0);
-            Sleep(dwDelay);
-
-            if (flags & 4)
-            {
-                MyKeybdEvent(VK_LMENU, 0, KEYEVENTF_KEYUP, 0);
-                Sleep(dwDelay);
-            }
-            if (flags & 2)
-            {
-                MyKeybdEvent(VK_LCONTROL, 0, KEYEVENTF_KEYUP, 0);
-                Sleep(dwDelay);
-            }
-            if (flags & 1)
-            {
-                MyKeybdEvent(VK_LSHIFT, 0, KEYEVENTF_KEYUP, 0);
-                Sleep(dwDelay);
-            }
+            ChangeModifier(VK_LSHIFT, modifierWasSet, config.modifier_delay, modifierWasSet ? pszModifierUpSound : pszModifierDownSound);
         }
+
+        modifierWasSet = lastFlags & 2;
+        if (((flags & 2) == 2) != modifierWasSet)
+        {
+            ChangeModifier(VK_LCONTROL, modifierWasSet, config.modifier_delay, modifierWasSet ? pszModifierUpSound : pszModifierDownSound);
+        }
+
+        modifierWasSet = lastFlags & 4;
+        if (((flags & 4) == 4) != modifierWasSet)
+        {
+            ChangeModifier(VK_LMENU, modifierWasSet, config.modifier_delay, modifierWasSet ? pszModifierUpSound : pszModifierDownSound);
+        }
+
+        lastFlags = flags;
+
+        PressAndRelease(vk, config.modifier_delay, config.key_delay(), pszSound);
     }
 
-    HKL hkl;
-    for (INT k = 0; k < cMaxKL; ++k)
+    if (lastFlags & 1)
     {
-        HKL hkl = GetKeyboardLayout(0);
-        if (hkl == hklOld)
-            break;
-
-        MyKeybdEvent(VK_LSHIFT, 0, 0, 0);
-        Sleep(dwDelay);
-        MyKeybdEvent(VK_LMENU, 0, 0, 0);
-        Sleep(dwDelay);
-        MyKeybdEvent(VK_LMENU, 0, KEYEVENTF_KEYUP, 0);
-        Sleep(dwDelay);
-        MyKeybdEvent(VK_LSHIFT, 0, KEYEVENTF_KEYUP, 0);
-        Sleep(dwDelay);
+        ChangeModifier(VK_LSHIFT, true, config.modifier_delay, pszModifierUpSound);
     }
+
+    if (lastFlags & 2)
+    {
+        ChangeModifier(VK_LCONTROL, true, config.modifier_delay, pszModifierUpSound);
+    }
+
+    if (lastFlags & 4)
+    {
+        ChangeModifier(VK_LMENU, true, config.modifier_delay, pszModifierUpSound);
+    }
+
+    SetKeyboardLayout(hklOld, config.modifier_delay);
 }

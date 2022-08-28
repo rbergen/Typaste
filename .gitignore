@@ -28,5 +28,6 @@ TMP1.$$$
 build
 ipch
 x64
+RCa[0-9][0-9][0-9][0-9][0-9]
 *-old
 *.skrold

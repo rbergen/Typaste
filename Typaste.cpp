@@ -4,23 +4,26 @@
 #include "Typaste.hpp"
 
 #define DEFAULT_DELAY 20
-#define DEFALUT_HOTKEY MAKEWORD('V', HOTKEYF_CONTROL)
+#define DEFAULT_HOTKEY MAKEWORD('V', HOTKEYF_CONTROL)
 #define HOTKEY_ID 0xDEDD
 
+
 HWND s_hwndMain = NULL;
-DWORD s_dwDelay = DEFAULT_DELAY;
-WORD s_wHotKey = DEFALUT_HOTKEY;
 HICON s_hIcon = NULL;
 HICON s_hIconSm = NULL;
 INT s_nExitCode = IDCANCEL;
-std::wstring s_strSound;
+typaste_config config(DEFAULT_DELAY, DEFAULT_HOTKEY);
 
 static const TCHAR s_szName[] = TEXT("Typaste");
+static const WCHAR s_szEnterSoundFile[] = L"enter.wav";
+static const WCHAR s_szSpaceSoundFile[] = L"space.wav";
+static const WCHAR s_szModifierDownSoundFile[] = L"modifierdown.wav";
+static const WCHAR s_szModifierUpSoundFile[] = L"modifierup.wav";
 
 BOOL MyRegisterHotKey(HWND hwnd)
 {
-    UINT vk = LOBYTE(s_wHotKey);
-    UINT flags = HIBYTE(s_wHotKey);
+    UINT vk = LOBYTE(config.hotkey);
+    UINT flags = HIBYTE(config.hotkey);
 
     UINT nMod = 0;
     if (flags & HOTKEYF_ALT)
@@ -39,15 +42,9 @@ BOOL MyRegisterHotKey(HWND hwnd)
     return TRUE;
 }
 
-BOOL Settings_OnInitDialog(HWND hwnd, HWND hwndFocus, LPARAM lParam)
+void Settings_FindSoundFiles(sound_config& soundConfig)
 {
-    SendMessageW(hwnd, WM_SETICON, ICON_BIG, (LPARAM)s_hIcon);
-    SendMessageW(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)s_hIconSm);
-
-    SetDlgItemInt(hwnd, edt1, s_dwDelay, FALSE);
-
-    SendDlgItemMessage(hwnd, edt2, HKM_SETRULES, HKCOMB_A | HKCOMB_NONE | HKCOMB_S, 0);
-    SendDlgItemMessage(hwnd, edt2, HKM_SETHOTKEY, s_wHotKey, 0);
+    soundConfig.clear();
 
     WCHAR szPath[MAX_PATH];
     GetModuleFileNameW(NULL, szPath, MAX_PATH);
@@ -55,23 +52,63 @@ BOOL Settings_OnInitDialog(HWND hwnd, HWND hwndFocus, LPARAM lParam)
     *pch = 0;
     lstrcatW(szPath, L"\\*.wav");
 
-    HWND hCmb1 = GetDlgItem(hwnd, cmb1);
     WIN32_FIND_DATAW find;
     HANDLE hFind = FindFirstFile(szPath, &find);
     if (hFind != INVALID_HANDLE_VALUE)
     {
         do
         {
-            ComboBox_AddString(hCmb1, find.cFileName);
+            if (_wcsicmp(find.cFileName, s_szEnterSoundFile) == 0)
+            {
+                soundConfig.enter = s_szEnterSoundFile;
+            }
+            else if (_wcsicmp(find.cFileName, s_szSpaceSoundFile) == 0)
+            {
+                soundConfig.space = s_szSpaceSoundFile;
+            }
+            else if (_wcsicmp(find.cFileName, s_szModifierDownSoundFile) == 0)
+            {
+                soundConfig.modifier_down = s_szModifierDownSoundFile;
+            }
+            else if (_wcsicmp(find.cFileName, s_szModifierUpSoundFile) == 0)
+            {
+                soundConfig.modifier_down = s_szModifierUpSoundFile;
+            }
+            else 
+            {
+                soundConfig.key_list.push_back(find.cFileName);
+            }
         } while (FindNextFileW(hFind, &find));
         FindClose(hFind);
     }
+}
 
-    if (ComboBox_FindStringExact(hCmb1, -1, s_strSound.c_str()) == CB_ERR)
+BOOL Settings_OnInitDialog(HWND hwnd, HWND hwndFocus, LPARAM lParam)
+{
+    SendMessageW(hwnd, WM_SETICON, ICON_BIG, (LPARAM)s_hIcon);
+    SendMessageW(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)s_hIconSm);
+
+    SetDlgItemInt(hwnd, edt1, config.min_key_delay, FALSE);
+    SetDlgItemInt(hwnd, edt3, config.max_key_delay, FALSE);
+    SetDlgItemInt(hwnd, edt4, config.modifier_delay, FALSE);
+
+    SendDlgItemMessage(hwnd, edt2, HKM_SETRULES, HKCOMB_A | HKCOMB_NONE | HKCOMB_S, 0);
+    SendDlgItemMessage(hwnd, edt2, HKM_SETHOTKEY, config.hotkey, 0);
+
+    HWND hCmb1 = GetDlgItem(hwnd, cmb1);
+
+    Settings_FindSoundFiles(config.sound_config);
+
+    for (auto& fileName : config.sound_config.key_list)
     {
-        ComboBox_AddString(hCmb1, s_strSound.c_str());
+        ComboBox_AddString(hCmb1, fileName.c_str());
     }
-    ComboBox_SetText(hCmb1, s_strSound.c_str());
+
+    if (ComboBox_FindStringExact(hCmb1, -1, config.sound_config.key.c_str()) == CB_ERR)
+    {
+        ComboBox_AddString(hCmb1, config.sound_config.key.c_str());
+    }
+    ComboBox_SetText(hCmb1, config.sound_config.key.c_str());
 
     SetForegroundWindow(hwnd);
     return TRUE;
@@ -87,8 +124,12 @@ BOOL Settings_Delete(HWND hwnd)
     if (!hKey)
         return FALSE;
 
-    RegDeleteKeyW(hKey, L"Delay");
+    RegDeleteKeyW(hKey, L"MinDelay");
+    RegDeleteKeyW(hKey, L"MaxDelay");
+    RegDeleteKeyW(hKey, L"ModifierDelay");
     RegDeleteKeyW(hKey, L"HotKey");
+    RegDeleteKeyW(hKey, L"Sound");
+    RegDeleteKeyW(hKey, L"RandomSound");
     RegCloseKey(hKey);
 
     LONG nError = RegDeleteKeyW(HKEY_CURRENT_USER,
@@ -98,8 +139,11 @@ BOOL Settings_Delete(HWND hwnd)
 
 BOOL Settings_Load(HWND hwnd)
 {
-    s_dwDelay = DEFAULT_DELAY;
-    s_wHotKey = DEFALUT_HOTKEY;
+
+    config.max_key_delay = DEFAULT_DELAY;
+    config.min_key_delay = DEFAULT_DELAY;
+    config.modifier_delay = DEFAULT_DELAY;
+    config.hotkey = DEFAULT_HOTKEY;
 
     HKEY hKey = NULL;
     RegOpenKeyExW(HKEY_CURRENT_USER,
@@ -113,22 +157,40 @@ BOOL Settings_Load(HWND hwnd)
     WCHAR szText[MAX_PATH];
 
     cbData = sizeof(DWORD);
-    if (ERROR_SUCCESS == RegQueryValueExW(hKey, L"Delay", NULL, NULL, (LPBYTE)&dwData, &cbData))
+    if (ERROR_SUCCESS == RegQueryValueExW(hKey, L"MinDelay", NULL, NULL, (LPBYTE)&dwData, &cbData))
     {
-        s_dwDelay = dwData;
+        config.min_key_delay = dwData;
+    }
+
+    cbData = sizeof(DWORD);
+    if (ERROR_SUCCESS == RegQueryValueExW(hKey, L"MaxDelay", NULL, NULL, (LPBYTE)&dwData, &cbData))
+    {
+        config.max_key_delay = dwData;
+    }
+
+    cbData = sizeof(DWORD);
+    if (ERROR_SUCCESS == RegQueryValueExW(hKey, L"ModifierDelay", NULL, NULL, (LPBYTE)&dwData, &cbData))
+    {
+        config.modifier_delay = dwData;
     }
 
     cbData = sizeof(DWORD);
     if (ERROR_SUCCESS == RegQueryValueExW(hKey, L"HotKey", NULL, NULL, (LPBYTE)&dwData, &cbData))
     {
-        s_wHotKey = (WORD)dwData;
+        config.hotkey = (WORD)dwData;
     }
 
     cbData = sizeof(szText);
     if (ERROR_SUCCESS == RegQueryValueExW(hKey, L"Sound", NULL, NULL, (LPBYTE)szText, &cbData))
     {
         StrTrimW(szText, L" \t\r\n");
-        s_strSound = szText;
+        config.sound_config.key = szText;
+    }
+
+    cbData = sizeof(DWORD);
+    if (ERROR_SUCCESS == RegQueryValueExW(hKey, L"RandomSound", NULL, NULL, (LPBYTE)&dwData, &cbData))
+    {
+        config.sound_config.random_key = dwData != 0;
     }
 
     RegCloseKey(hKey);
@@ -152,13 +214,18 @@ BOOL Settings_Save(HWND hwnd)
         return FALSE;
     }
 
-    RegSetValueExW(hAppKey, L"Delay", 0, REG_DWORD, (BYTE *)&s_dwDelay, sizeof(DWORD));
+    RegSetValueExW(hAppKey, L"MinDelay", 0, REG_DWORD, (BYTE *)&config.min_key_delay, sizeof(DWORD));
+    RegSetValueExW(hAppKey, L"MaxDelay", 0, REG_DWORD, (BYTE *)&config.max_key_delay, sizeof(DWORD));
+    RegSetValueExW(hAppKey, L"ModifierDelay", 0, REG_DWORD, (BYTE *)&config.modifier_delay, sizeof(DWORD));
 
-    DWORD dwData = s_wHotKey;
+    DWORD dwData = config.hotkey;
     RegSetValueExW(hAppKey, L"HotKey", 0, REG_DWORD, (BYTE *)&dwData, sizeof(DWORD));
 
-    DWORD cbData = (s_strSound.size() + 1) * sizeof(WCHAR);
-    RegSetValueExW(hAppKey, L"Sound", 0, REG_SZ, (BYTE *)s_strSound.c_str(), cbData);
+    DWORD cbData = (config.sound_config.key.size() + 1) * sizeof(WCHAR);
+    RegSetValueExW(hAppKey, L"Sound", 0, REG_SZ, (BYTE *)config.sound_config.key.c_str(), cbData);
+
+    dwData = config.sound_config.random_key ? 1 : 0;
+    RegSetValueExW(hAppKey, L"RandomSound", 0, REG_DWORD, (BYTE *)&dwData, sizeof(DWORD));
 
     RegCloseKey(hAppKey);
     RegCloseKey(hCompanyKey);
@@ -167,13 +234,17 @@ BOOL Settings_Save(HWND hwnd)
 
 void Settings_OnOK(HWND hwnd)
 {
-    s_dwDelay = GetDlgItemInt(hwnd, edt1, NULL, FALSE);
-    s_wHotKey = (WORD)SendDlgItemMessage(hwnd, edt2, HKM_GETHOTKEY, 0, 0);
+    config.min_key_delay = GetDlgItemInt(hwnd, edt1, NULL, FALSE);
+    config.max_key_delay = GetDlgItemInt(hwnd, edt3, NULL, FALSE);
+    config.modifier_delay = GetDlgItemInt(hwnd, edt4, NULL, FALSE);
+    config.hotkey = (WORD)SendDlgItemMessage(hwnd, edt2, HKM_GETHOTKEY, 0, 0);
 
     WCHAR szText[MAX_PATH];
     GetDlgItemText(hwnd, cmb1, szText, ARRAYSIZE(szText));
     StrTrimW(szText, L" \t\r\n");
-    s_strSound = szText;
+    config.sound_config.key = szText;
+
+    config.sound_config.random_key = IsDlgButtonChecked(hwnd, rad2) == BST_CHECKED;
 
     Settings_Save(hwnd);
 
@@ -234,6 +305,10 @@ void Settings_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
         break;
     case psh2:
         Settings_OnPsh2(hwnd);
+        break;
+    case rad1:
+    case rad2:
+        CheckRadioButton(hwnd, rad1, rad2, id);
         break;
     }
 }
@@ -309,8 +384,8 @@ void OnHotKey(HWND hwnd, int idHotKey, UINT fuModifiers, UINT vk)
         !OpenClipboard(hwnd))
     {
         UnregisterHotKey(hwnd, HOTKEY_ID);
-        WaitModifierRelease(s_dwDelay);
-        CtrlV(s_dwDelay);
+        WaitModifierRelease(config.modifier_delay);
+        CtrlV(config.modifier_delay);
         MyRegisterHotKey(hwnd);
         return;
     }
@@ -328,37 +403,17 @@ void OnHotKey(HWND hwnd, int idHotKey, UINT fuModifiers, UINT vk)
     if (!pszClone)
     {
         UnregisterHotKey(hwnd, HOTKEY_ID);
-        WaitModifierRelease(s_dwDelay);
-        CtrlV(s_dwDelay);
+        WaitModifierRelease(config.modifier_delay);
+        CtrlV(config.modifier_delay);
         MyRegisterHotKey(hwnd);
         return;
     }
 
     CloseClipboard();
 
-    WaitModifierRelease(s_dwDelay);
+    WaitModifierRelease(config.modifier_delay);
 
-    WCHAR szSound[MAX_PATH];
-    LPWSTR pch;
-    LPCWSTR pszSound = s_strSound.c_str();
-    if (PathIsRelative(pszSound))
-    {
-        GetModuleFileNameW(NULL, szSound, ARRAYSIZE(szSound));
-        pch = wcsrchr(szSound, L'\\');
-        if (!pch)
-            pch = wcsrchr(szSound, L'/');
-        if (pch)
-        {
-            *pch = 0;
-            PathAppendW(szSound, pszSound);
-        }
-    }
-    else
-    {
-        lstrcpynW(szSound, pszSound, ARRAYSIZE(szSound));
-    }
-
-    AutoType(pszClone, s_dwDelay, szSound);
+    AutoType(pszClone, config);
     free(pszClone);
 }
 

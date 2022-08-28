@@ -6,5 +6,6 @@
 #include <commctrl.h>
 #include <commdlg.h>
 #include <string>
+#include "types.hpp"
 #include "AutoType.hpp"
 #include "resource.h"
