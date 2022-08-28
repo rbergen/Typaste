@@ -36,7 +36,7 @@ public:
 
     LPCWSTR get_key() 
     {
-        std::uniform_int_distribution<>::param_type dist_params(0, key_list.size());
+        std::uniform_int_distribution<>::param_type dist_params(0, key_list.size() - 1);
         return random_key ? key_list[dist(gen, dist_params)].c_str() : key.c_str();
     }
 
