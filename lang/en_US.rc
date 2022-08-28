@@ -42,11 +42,11 @@ CAPTION "Typaste Settings"
 STYLE DS_CENTER | DS_MODALFRAME | WS_POPUPWINDOW | WS_CAPTION
 FONT 9, "Tahoma"
 {
-    RTEXT "&Delay (Milliseconds):", -1, 5, 5, 75, 12
+    RTEXT "&Delay (milliseconds):", -1, 5, 5, 75, 12
     EDITTEXT edt1, 85, 4, 35, 14, ES_NUMBER
     LTEXT "to", -1, 123, 5, 7, 12
     EDITTEXT edt3, 133, 4, 35, 14, ES_NUMBER
-    RTEXT "&Modifier Delay:", -1, 5, 24, 75, 12
+    RTEXT "&Travel delay:", -1, 5, 24, 75, 12
     EDITTEXT edt4, 85, 23, 35, 14, ES_NUMBER
     RTEXT "&HotKey:", -1, 6, 43, 75, 11
     CONTROL "", edt2, "msctls_hotkey32", 0, 85, 42, 70, 14

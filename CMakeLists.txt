@@ -11,7 +11,7 @@ if(COMMAND cmake_policy)
 endif(COMMAND cmake_policy)
 
 # project name and language
-project(Typaste LANGUAGES CXX VERSION 0.5.0)
+project(Typaste LANGUAGES CXX VERSION 0.6.0)
 
 # check build type
 if (NOT CMAKE_BUILD_TYPE)
