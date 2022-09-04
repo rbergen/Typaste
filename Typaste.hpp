@@ -7,5 +7,6 @@
 #include <commdlg.h>
 #include <string>
 #include "types.hpp"
+#include "messages.hpp"
 #include "AutoType.hpp"
 #include "resource.h"

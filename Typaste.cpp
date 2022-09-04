@@ -7,7 +7,6 @@
 #define DEFAULT_HOTKEY MAKEWORD('V', HOTKEYF_CONTROL)
 #define HOTKEY_ID 0xDEDD
 
-
 HWND s_hwndMain = NULL;
 HICON s_hIcon = NULL;
 HICON s_hIconSm = NULL;
@@ -42,7 +41,7 @@ BOOL MyRegisterHotKey(HWND hwnd)
     return TRUE;
 }
 
-void Settings_FindSoundFiles(sound_config& soundConfig)
+void FindSoundFiles(sound_config& soundConfig)
 {
     soundConfig.clear();
 
@@ -81,6 +80,11 @@ void Settings_FindSoundFiles(sound_config& soundConfig)
         } while (FindNextFileW(hFind, &find));
         FindClose(hFind);
     }
+
+    if (soundConfig.key_list.size())
+    {
+        soundConfig.key = soundConfig.key_list[0];
+    }
 }
 
 BOOL Settings_OnInitDialog(HWND hwnd, HWND hwndFocus, LPARAM lParam)
@@ -95,9 +99,9 @@ BOOL Settings_OnInitDialog(HWND hwnd, HWND hwndFocus, LPARAM lParam)
     SendDlgItemMessage(hwnd, edt2, HKM_SETRULES, HKCOMB_A | HKCOMB_NONE | HKCOMB_S, 0);
     SendDlgItemMessage(hwnd, edt2, HKM_SETHOTKEY, config.hotkey, 0);
 
-    HWND hCmb1 = GetDlgItem(hwnd, cmb1);
+    CheckRadioButton(hwnd, rad1, rad2, config.sound_config.random_key ? rad2 : rad1);
 
-    Settings_FindSoundFiles(config.sound_config);
+    HWND hCmb1 = GetDlgItem(hwnd, cmb1);
 
     for (auto& fileName : config.sound_config.key_list)
     {
@@ -129,7 +133,7 @@ BOOL Settings_Delete(HWND hwnd)
     RegDeleteKeyW(hKey, L"ModifierDelay");
     RegDeleteKeyW(hKey, L"HotKey");
     RegDeleteKeyW(hKey, L"Sound");
-    RegDeleteKeyW(hKey, L"RandomSound");
+    RegDeleteKeyW(hKey, L"SetSound");
     RegCloseKey(hKey);
 
     LONG nError = RegDeleteKeyW(HKEY_CURRENT_USER,
@@ -188,9 +192,9 @@ BOOL Settings_Load(HWND hwnd)
     }
 
     cbData = sizeof(DWORD);
-    if (ERROR_SUCCESS == RegQueryValueExW(hKey, L"RandomSound", NULL, NULL, (LPBYTE)&dwData, &cbData))
+    if (ERROR_SUCCESS == RegQueryValueExW(hKey, L"SetSound", NULL, NULL, (LPBYTE)&dwData, &cbData))
     {
-        config.sound_config.random_key = dwData != 0;
+        config.sound_config.random_key = !(dwData != 0);
     }
 
     RegCloseKey(hKey);
@@ -224,8 +228,8 @@ BOOL Settings_Save(HWND hwnd)
     DWORD cbData = (config.sound_config.key.size() + 1) * sizeof(WCHAR);
     RegSetValueExW(hAppKey, L"Sound", 0, REG_SZ, (BYTE *)config.sound_config.key.c_str(), cbData);
 
-    dwData = config.sound_config.random_key ? 1 : 0;
-    RegSetValueExW(hAppKey, L"RandomSound", 0, REG_DWORD, (BYTE *)&dwData, sizeof(DWORD));
+    dwData = config.sound_config.random_key ? 0 : 1;
+    RegSetValueExW(hAppKey, L"SetSound", 0, REG_DWORD, (BYTE *)&dwData, sizeof(DWORD));
 
     RegCloseKey(hAppKey);
     RegCloseKey(hCompanyKey);
@@ -330,6 +334,7 @@ BOOL OnInitDialog(HWND hwnd, HWND hwndFocus, LPARAM lParam)
 {
     s_hwndMain = hwnd;
 
+    FindSoundFiles(config.sound_config);
     Settings_Load(hwnd);
     MyRegisterHotKey(hwnd);
 
@@ -413,8 +418,7 @@ void OnHotKey(HWND hwnd, int idHotKey, UINT fuModifiers, UINT vk)
 
     WaitModifierRelease(config.modifier_delay);
 
-    AutoType(pszClone, config);
-    free(pszClone);
+    PostMessage(hwnd, StartAutoType(pszClone, config), 0, 0);
 }
 
 void OnDestroy(HWND hwnd)
@@ -437,6 +441,12 @@ MainDialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         HANDLE_MSG(hwnd, WM_COMMAND, OnCommand);
         HANDLE_MSG(hwnd, WM_HOTKEY, OnHotKey);
         HANDLE_MSG(hwnd, WM_DESTROY, OnDestroy);
+        case WM_PASTECHAR:
+            PostMessage(hwnd, AutoTypeChar(), 0, 0);
+            return TRUE;
+        case WM_ENDPASTE:
+            EndAutoType();
+            return TRUE;
     }
     return 0;
 }

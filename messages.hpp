@@ -1,0 +1,3 @@
+#define WM_STARTPASTE WM_APP
+#define WM_PASTECHAR WM_APP + 1
+#define WM_ENDPASTE WM_APP + 2

@@ -90,3 +90,66 @@ public:
         return dist(gen, std::uniform_int_distribution<DWORD>::param_type(delay_pair.first, delay_pair.second));
     }
 };
+
+class paste_state
+{
+    typaste_config* config_ptr;
+    std::wstring text_str;
+    size_t text_index;
+    
+public:
+    bool pasting;
+    std::vector<HKL> keyboard_layouts;
+    HKL original_keyboard_layout;
+    BYTE last_flags;
+    LPCWSTR modifier_down_sound;
+    LPCWSTR modifier_up_sound;
+
+    paste_state() 
+    {
+        clear();
+    }
+
+    void clear()
+    {
+        pasting = false;
+        keyboard_layouts.clear();
+        original_keyboard_layout = NULL;
+        last_flags = 0;
+    }
+
+    void reset(typaste_config& config, const WCHAR* buffer) 
+    {
+        clear();
+        this->config_ptr = &config;
+        text(buffer);
+        modifier_down_sound = config.sound_config.modifier_down_key();
+        modifier_up_sound = config.sound_config.modifier_up_key();
+    }
+
+    typaste_config& config()
+    {
+        return *config_ptr;
+    }
+
+    void text(const WCHAR* buffer)
+    {
+        text_str = buffer;
+        text_index = 0;
+    }
+
+    bool next_character() 
+    {
+        if (text_index >= text_str.length())
+        {
+            return false;
+        }
+
+        return ++text_index < text_str.length();
+    }
+
+    WCHAR character()
+    {
+        return text_index < text_str.length() ? text_str[text_index] : L'\0';
+    }
+};
