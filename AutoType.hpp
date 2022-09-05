@@ -38,5 +38,3 @@ inline void CtrlV(DWORD dwDelay)
 UINT StartAutoType(LPCWSTR pszText, typaste_config &config);
 UINT AutoTypeChar();
 void EndAutoType();
-
-#define NEXT_CHAR   return state.next_character() ? WM_PASTECHAR : WM_ENDPASTE

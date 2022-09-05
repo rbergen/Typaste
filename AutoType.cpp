@@ -3,6 +3,8 @@
 // This file is public domain software.
 #include "Typaste.hpp"
 
+#define NEXT_CHAR(object)   object.next_character() ? WM_PASTECHAR : WM_ENDPASTE
+
 static paste_state state;
 
 const UINT cMaxKL = 10;
@@ -103,13 +105,13 @@ UINT AutoTypeChar()
     switch (state.character())
     {
     case L'\r':
-        NEXT_CHAR;
+        return NEXT_CHAR(state);
     case L'\n':
         PressAndRelease(VK_RETURN, config.modifier_delay, config.key_delay(), sound);
-        NEXT_CHAR;
+        return NEXT_CHAR(state);
     case L'\t':
         PressAndRelease(VK_TAB, config.modifier_delay, config.key_delay(), sound);
-        NEXT_CHAR;
+        return NEXT_CHAR(state);
     }
 
     SHORT s = -1;
@@ -140,7 +142,7 @@ UINT AutoTypeChar()
                             SMTO_ABORTIFHUNG, 2000, &dwResult);
         Sleep(config.modifier_delay);
 
-        NEXT_CHAR;
+        return NEXT_CHAR(state);
     }
 
     bool modifierWasSet = state.last_flags & 1;
@@ -165,7 +167,7 @@ UINT AutoTypeChar()
 
     PressAndRelease(vk, config.modifier_delay, config.key_delay(), sound);
 
-    NEXT_CHAR;
+    return NEXT_CHAR(state);
 }
 
 void EndAutoType() 
