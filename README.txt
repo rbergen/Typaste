@@ -60,12 +60,12 @@ Please do not use this software for illegal purposes.
 - 2019.XX.YY ver.0.5.3
   - Check window existence before startup.
   - Add play sound feature.
-- 2022.08.28 ver.0.6.0.rvb
+- 2022.08.28 ver.0.6.0-rvb
   - Resemble natural typing.
 
 ## Contact Us
 
 - Katayama Hirofumi MZ (katahiromz)
   katayama.hirofumi.mz@gmail.com
-- Rutger van Bergen (rbergen), for changes implemented in version 0.6.0.rvb
+- Rutger van Bergen (rbergen), for changes implemented in version 0.6.0-rvb
   rbergen@xs4all.nl

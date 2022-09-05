@@ -1,13 +1,18 @@
 #include <vector>
 #include <random>
 
+using namespace std;
+
 class sound_config
 {
-    std::mt19937 gen;
-    std::uniform_int_distribution<> dist;
+    mt19937 gen;
+    typedef uniform_int_distribution<> int_dist;
+    typedef int_dist::param_type int_dist_params;
+    int_dist dist;
+    typedef pair<wstring, LPBYTE> key_data_pair;
 
 public:
-    sound_config(std::mt19937 generator) :
+    sound_config(mt19937 generator) :
         gen(generator),
         dist(),
         key_list()
@@ -15,47 +20,80 @@ public:
         clear();
     }
 
+    struct key_data : key_data_pair
+    {
+        using key_data_pair::key_data_pair;
+
+        wstring& file_name() 
+        {
+            return first;
+        }
+
+        wstring& file_name(LPCWSTR value) 
+        {
+            first = value;
+            return first;
+        }
+
+        wstring& file_name(const wstring &value) 
+        {
+            first = value;
+            return first;
+        }
+
+        LPBYTE sound()
+        {
+            return second;
+        }
+
+        LPBYTE sound(LPBYTE value)
+        {
+            second = value;
+            return second;
+        }
+    };
+
     void clear() 
     {
         enter = NULL;
         space = NULL;
         modifier_down = NULL;
         modifier_up = NULL;
-        key.clear();
+        key.file_name(L"");
+        key.sound(NULL);
         key_list.clear();
         random_key = true;
     }
 
-    LPCWSTR enter;
-    LPCWSTR space;
-    LPCWSTR modifier_down;
-    LPCWSTR modifier_up;
-    std::wstring key;
-    std::vector<std::wstring> key_list;
+    LPBYTE enter;
+    LPBYTE space;
+    LPBYTE modifier_down;
+    LPBYTE modifier_up;
+    key_data key;
+    vector<key_data> key_list;
     bool random_key;
 
-    LPCWSTR get_key() 
+    LPBYTE get_key() 
     {
-        std::uniform_int_distribution<>::param_type dist_params(0, key_list.size() - 1);
-        return random_key ? key_list[dist(gen, dist_params)].c_str() : key.c_str();
+        return random_key ? key_list[dist(gen, int_dist_params(0, key_list.size() - 1))].sound() : key.sound();
     }
 
-    LPCWSTR enter_key() 
+    LPBYTE enter_key() 
     {
         return enter != NULL ? enter : get_key();
     }
 
-    LPCWSTR space_key() 
+    LPBYTE space_key() 
     {
         return space != NULL ? space : get_key();
     }
 
-    LPCWSTR modifier_down_key() 
+    LPBYTE modifier_down_key() 
     {
         return modifier_down != NULL ? modifier_down : get_key();
     }
 
-    LPCWSTR modifier_up_key() 
+    LPBYTE modifier_up_key() 
     {
         return modifier_up != NULL ? modifier_up : get_key();
     }
@@ -63,8 +101,11 @@ public:
 
 class typaste_config
 {
-    std::mt19937 gen;
-    std::uniform_int_distribution<DWORD> dist;
+    mt19937 gen;
+
+    typedef uniform_int_distribution<DWORD> dword_dist;
+    typedef dword_dist::param_type dword_dist_params;
+    dword_dist dist;
 
 public:
 
@@ -73,7 +114,7 @@ public:
         max_key_delay(defaultDelay),
         modifier_delay(defaultDelay),
         hotkey(defaultHotkey),
-        gen(std::random_device()()),
+        gen(random_device()()),
         sound_config(gen),
         dist() 
     {}
@@ -86,24 +127,24 @@ public:
 
     DWORD key_delay() 
     {
-        auto& delay_pair = std::minmax(min_key_delay, max_key_delay);
-        return dist(gen, std::uniform_int_distribution<DWORD>::param_type(delay_pair.first, delay_pair.second));
+        auto& delay_pair = minmax(min_key_delay, max_key_delay);
+        return dist(gen, dword_dist_params(delay_pair.first, delay_pair.second));
     }
 };
 
 class paste_state
 {
     typaste_config* config_ptr;
-    std::wstring text_str;
+    wstring text_str;
     size_t text_index;
     
 public:
     bool pasting;
-    std::vector<HKL> keyboard_layouts;
+    vector<HKL> keyboard_layouts;
     HKL original_keyboard_layout;
     BYTE last_flags;
-    LPCWSTR modifier_down_sound;
-    LPCWSTR modifier_up_sound;
+    LPBYTE modifier_down_sound;
+    LPBYTE modifier_up_sound;
 
     paste_state() 
     {
@@ -118,10 +159,10 @@ public:
         last_flags = 0;
     }
 
-    void reset(typaste_config& config, const WCHAR* buffer) 
+    void reset(typaste_config& config, LPCWSTR buffer) 
     {
         clear();
-        this->config_ptr = &config;
+        config_ptr = &config;
         text(buffer);
         modifier_down_sound = config.sound_config.modifier_down_key();
         modifier_up_sound = config.sound_config.modifier_up_key();
@@ -132,7 +173,7 @@ public:
         return *config_ptr;
     }
 
-    void text(const WCHAR* buffer)
+    void text(LPCWSTR buffer)
     {
         text_str = buffer;
         text_index = 0;

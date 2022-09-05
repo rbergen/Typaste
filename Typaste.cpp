@@ -3,9 +3,12 @@
 // This file is public domain software.
 #include "Typaste.hpp"
 
+using namespace std;
+
 #define DEFAULT_DELAY 20
 #define DEFAULT_HOTKEY MAKEWORD('V', HOTKEYF_CONTROL)
 #define HOTKEY_ID 0xDEDD
+#define LoadIfFound(sound, findname, filename)    if (_wcsicmp((findname), (filename)) == 0) sound = LoadFile(findname)
 
 HWND s_hwndMain = NULL;
 HICON s_hIcon = NULL;
@@ -41,6 +44,28 @@ BOOL MyRegisterHotKey(HWND hwnd)
     return TRUE;
 }
 
+LPBYTE LoadFile(LPCWSTR lpszFileName)
+{
+    HANDLE hFile = CreateFile(lpszFileName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (hFile == INVALID_HANDLE_VALUE)
+    {
+        return NULL;
+    }
+
+    DWORD dwFileSize = GetFileSize(hFile, NULL);
+    DWORD dwBytesRead;
+    LPBYTE buffer = new BYTE[dwFileSize];
+    BOOL readSuccess = ReadFile(hFile, buffer, dwFileSize, &dwBytesRead, NULL);
+    CloseHandle(hFile);
+    if (readSuccess)
+    {
+        return buffer;
+    }
+
+    delete[] buffer;
+    return NULL;
+}
+
 void FindSoundFiles(sound_config& soundConfig)
 {
     soundConfig.clear();
@@ -57,25 +82,13 @@ void FindSoundFiles(sound_config& soundConfig)
     {
         do
         {
-            if (_wcsicmp(find.cFileName, s_szEnterSoundFile) == 0)
-            {
-                soundConfig.enter = s_szEnterSoundFile;
-            }
-            else if (_wcsicmp(find.cFileName, s_szSpaceSoundFile) == 0)
-            {
-                soundConfig.space = s_szSpaceSoundFile;
-            }
-            else if (_wcsicmp(find.cFileName, s_szModifierDownSoundFile) == 0)
-            {
-                soundConfig.modifier_down = s_szModifierDownSoundFile;
-            }
-            else if (_wcsicmp(find.cFileName, s_szModifierUpSoundFile) == 0)
-            {
-                soundConfig.modifier_down = s_szModifierUpSoundFile;
-            }
+            LoadIfFound(soundConfig.enter, find.cFileName, s_szEnterSoundFile);
+            else LoadIfFound(soundConfig.space, find.cFileName, s_szSpaceSoundFile);
+            else LoadIfFound(soundConfig.modifier_down, find.cFileName, s_szModifierDownSoundFile);
+            else LoadIfFound(soundConfig.modifier_up, find.cFileName, s_szModifierUpSoundFile);
             else 
             {
-                soundConfig.key_list.push_back(find.cFileName);
+                soundConfig.key_list.push_back({find.cFileName, LoadFile(find.cFileName)});
             }
         } while (FindNextFileW(hFind, &find));
         FindClose(hFind);
@@ -103,16 +116,16 @@ BOOL Settings_OnInitDialog(HWND hwnd, HWND hwndFocus, LPARAM lParam)
 
     HWND hCmb1 = GetDlgItem(hwnd, cmb1);
 
-    for (auto& fileName : config.sound_config.key_list)
+    for (auto& entry : config.sound_config.key_list)
     {
-        ComboBox_AddString(hCmb1, fileName.c_str());
+        ComboBox_AddString(hCmb1, entry.file_name().c_str());
     }
 
-    if (ComboBox_FindStringExact(hCmb1, -1, config.sound_config.key.c_str()) == CB_ERR)
+    if (ComboBox_FindStringExact(hCmb1, -1, config.sound_config.key.file_name().c_str()) == CB_ERR)
     {
-        ComboBox_AddString(hCmb1, config.sound_config.key.c_str());
+        ComboBox_AddString(hCmb1, config.sound_config.key.file_name().c_str());
     }
-    ComboBox_SetText(hCmb1, config.sound_config.key.c_str());
+    ComboBox_SetText(hCmb1, config.sound_config.key.file_name().c_str());
 
     SetForegroundWindow(hwnd);
     return TRUE;
@@ -188,7 +201,8 @@ BOOL Settings_Load(HWND hwnd)
     if (ERROR_SUCCESS == RegQueryValueExW(hKey, L"Sound", NULL, NULL, (LPBYTE)szText, &cbData))
     {
         StrTrimW(szText, L" \t\r\n");
-        config.sound_config.key = szText;
+        config.sound_config.key.file_name(szText);
+        config.sound_config.key.sound(LoadFile(szText));
     }
 
     cbData = sizeof(DWORD);
@@ -218,18 +232,18 @@ BOOL Settings_Save(HWND hwnd)
         return FALSE;
     }
 
-    RegSetValueExW(hAppKey, L"MinDelay", 0, REG_DWORD, (BYTE *)&config.min_key_delay, sizeof(DWORD));
-    RegSetValueExW(hAppKey, L"MaxDelay", 0, REG_DWORD, (BYTE *)&config.max_key_delay, sizeof(DWORD));
-    RegSetValueExW(hAppKey, L"ModifierDelay", 0, REG_DWORD, (BYTE *)&config.modifier_delay, sizeof(DWORD));
+    RegSetValueExW(hAppKey, L"MinDelay", 0, REG_DWORD, (LPBYTE)&config.min_key_delay, sizeof(DWORD));
+    RegSetValueExW(hAppKey, L"MaxDelay", 0, REG_DWORD, (LPBYTE)&config.max_key_delay, sizeof(DWORD));
+    RegSetValueExW(hAppKey, L"ModifierDelay", 0, REG_DWORD, (LPBYTE)&config.modifier_delay, sizeof(DWORD));
 
     DWORD dwData = config.hotkey;
-    RegSetValueExW(hAppKey, L"HotKey", 0, REG_DWORD, (BYTE *)&dwData, sizeof(DWORD));
+    RegSetValueExW(hAppKey, L"HotKey", 0, REG_DWORD, (LPBYTE)&dwData, sizeof(DWORD));
 
-    DWORD cbData = (config.sound_config.key.size() + 1) * sizeof(WCHAR);
-    RegSetValueExW(hAppKey, L"Sound", 0, REG_SZ, (BYTE *)config.sound_config.key.c_str(), cbData);
+    DWORD cbData = (config.sound_config.key.file_name().length() + 1) * sizeof(WCHAR);
+    RegSetValueExW(hAppKey, L"Sound", 0, REG_SZ, (LPBYTE)config.sound_config.key.file_name().c_str(), cbData);
 
     dwData = config.sound_config.random_key ? 0 : 1;
-    RegSetValueExW(hAppKey, L"SetSound", 0, REG_DWORD, (BYTE *)&dwData, sizeof(DWORD));
+    RegSetValueExW(hAppKey, L"SetSound", 0, REG_DWORD, (LPBYTE)&dwData, sizeof(DWORD));
 
     RegCloseKey(hAppKey);
     RegCloseKey(hCompanyKey);
@@ -246,7 +260,8 @@ void Settings_OnOK(HWND hwnd)
     WCHAR szText[MAX_PATH];
     GetDlgItemText(hwnd, cmb1, szText, ARRAYSIZE(szText));
     StrTrimW(szText, L" \t\r\n");
-    config.sound_config.key = szText;
+    config.sound_config.key.file_name(szText);
+    config.sound_config.key.sound(LoadFile(szText));
 
     config.sound_config.random_key = IsDlgButtonChecked(hwnd, rad2) == BST_CHECKED;
 
@@ -360,6 +375,8 @@ void OnPsh2(HWND hwnd)
 
 void OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 {
+    EndAutoType();
+
     switch (id)
     {
     case IDOK:
@@ -384,6 +401,8 @@ void OnHotKey(HWND hwnd, int idHotKey, UINT fuModifiers, UINT vk)
 {
     if (idHotKey != HOTKEY_ID)
         return;
+
+    EndAutoType();
 
     if (!IsClipboardFormatAvailable(CF_UNICODETEXT) ||
         !OpenClipboard(hwnd))
@@ -423,6 +442,8 @@ void OnHotKey(HWND hwnd, int idHotKey, UINT fuModifiers, UINT vk)
 
 void OnDestroy(HWND hwnd)
 {
+    EndAutoType();
+
     Settings_Save(hwnd);
     PostQuitMessage(0);
 }

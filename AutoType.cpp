@@ -7,22 +7,22 @@ static paste_state state;
 
 const UINT cMaxKL = 10;
 
-inline void ChangeModifier(WORD modifier, bool keyUp, DWORD delay, LPCWSTR sound) 
+inline void ChangeModifier(WORD modifier, bool keyUp, DWORD delay, LPBYTE sound) 
 {
-    if (sound && *sound)
+    if (sound)
     {
-        PlaySoundW(sound, NULL, SND_ASYNC | SND_FILENAME | SND_NODEFAULT);
+        PlaySound((LPCWSTR)sound, NULL, SND_ASYNC | SND_MEMORY | SND_NODEFAULT);
     }
     Sleep(delay);
     MyKeybdEvent(modifier, 0, keyUp ? KEYEVENTF_KEYUP : 0, 0);
     Sleep(delay);
 }
 
-inline void PressAndRelease(WORD key, DWORD pressDelay, DWORD postDelay, LPCWSTR sound)
+inline void PressAndRelease(WORD key, DWORD pressDelay, DWORD postDelay, LPBYTE sound)
 {
-    if (sound && *sound)
+    if (sound)
     {
-        PlaySoundW(sound, NULL, SND_ASYNC | SND_FILENAME | SND_NODEFAULT);
+        PlaySound((LPCWSTR)sound, NULL, SND_ASYNC | SND_MEMORY | SND_NODEFAULT);
     }
     Sleep(pressDelay);
     MyKeybdEvent(key, 0, 0, 0);
@@ -53,7 +53,7 @@ inline void SetKeyboardLayout(HKL layout, DWORD delay)
     }
 }
 
-UINT StartAutoType(const WCHAR *pszText, typaste_config &config)
+UINT StartAutoType(LPCWSTR pszText, typaste_config &config)
 {
     if (state.pasting)
     {
@@ -85,18 +85,18 @@ UINT AutoTypeChar()
     }
 
     typaste_config &config = state.config();
-    LPCWSTR pszSound = NULL;
+    LPBYTE sound = NULL;
 
     switch (state.character())
     {
     case L'\n':
-        pszSound = config.sound_config.enter_key();
+        sound = config.sound_config.enter_key();
         break;
     case L' ':
-        pszSound = config.sound_config.space_key();
+        sound = config.sound_config.space_key();
         break;
     default:
-        pszSound = config.sound_config.get_key();
+        sound = config.sound_config.get_key();
         break;
     }
 
@@ -105,10 +105,10 @@ UINT AutoTypeChar()
     case L'\r':
         NEXT_CHAR;
     case L'\n':
-        PressAndRelease(VK_RETURN, config.modifier_delay, config.key_delay(), pszSound);
+        PressAndRelease(VK_RETURN, config.modifier_delay, config.key_delay(), sound);
         NEXT_CHAR;
     case L'\t':
-        PressAndRelease(VK_TAB, config.modifier_delay, config.key_delay(), pszSound);
+        PressAndRelease(VK_TAB, config.modifier_delay, config.key_delay(), sound);
         NEXT_CHAR;
     }
 
@@ -163,13 +163,18 @@ UINT AutoTypeChar()
 
     state.last_flags = flags;
 
-    PressAndRelease(vk, config.modifier_delay, config.key_delay(), pszSound);
+    PressAndRelease(vk, config.modifier_delay, config.key_delay(), sound);
 
     NEXT_CHAR;
 }
 
 void EndAutoType() 
 {
+    if (!state.pasting)
+    {
+        return;
+    }
+
     typaste_config& config = state.config();
 
     if (state.last_flags & 1)

@@ -35,7 +35,7 @@ inline void CtrlV(DWORD dwDelay)
     Sleep(dwDelay);
 }
 
-UINT StartAutoType(const WCHAR *pszText, typaste_config &config);
+UINT StartAutoType(LPCWSTR pszText, typaste_config &config);
 UINT AutoTypeChar();
 void EndAutoType();
 
