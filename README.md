@@ -1,4 +1,4 @@
-# ![Typaste](typaste.png "") Typaste by katahiromz
+# ![Typaste](typaste.png "") Typaste by katahiromz & rbergen
 
 ## What's this?
 
