@@ -6,15 +6,19 @@
 
 using namespace std;
 
-typedef map<WCHAR, vector<WCHAR>> typo_map_base; 
-
 class typo_map_type 
 {
+public:
+    typedef map<WCHAR, vector<WCHAR>> typo_map_base; 
+
+protected:
+    typo_map_base inner_map;
+
+private:
     mt19937 gen;
     typedef uniform_int_distribution<> int_dist;
     typedef int_dist::param_type int_dist_params;
     int_dist dist;
-    typo_map_base inner_map;
     
 public:
     typo_map_type(typo_map_base map) :
