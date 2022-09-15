@@ -3,7 +3,109 @@
 // This file is public domain software.
 #include "Typaste.hpp"
 
-#define NEXT_CHAR(object)   object.next_character() ? WM_PASTECHAR : WM_ENDPASTE
+typo_map_type typo_map({
+    {'`', {'1'}},
+    {'1', {'`', '2', 'q'}},
+    {'2', {'1', '3', 'w', 'q'}},
+    {'3', {'2', '4', 'e', 'w'}},
+    {'4', {'3', '5', 'r', 'e'}},
+    {'5', {'4', '6', 't', 'r'}},
+    {'6', {'5', '7', 'y', 't'}},
+    {'7', {'6', '8', 'u', 'y'}},
+    {'8', {'7', '9', 'i', 'u'}},
+    {'9', {'8', '0', 'o', 'i'}},
+    {'0', {'9', '-', 'p', 'o'}},
+    {'-', {'0', '=', '[', 'p'}},
+    {'=', {'-', ']', '['}},
+
+    {'q', {'1', '2', 'w', 'a'}},
+    {'w', {'q', '2', '3', 'e', 's', 'a'}},
+    {'e', {'w', '3', '4', 'r', 'd', 's'}},
+    {'r', {'e', '4', '5', 't', 'f', 'd'}},
+    {'t', {'r', '5', '6', 'y', 'g', 'f'}},
+    {'y', {'t', '6', '7', 'u', 'h', 'g'}},
+    {'u', {'y', '7', '8', 'i', 'j', 'h'}},
+    {'i', {'u', '8', '9', 'o', 'k', 'j'}},
+    {'o', {'i', '9', '0', 'p', 'l', 'k'}},
+    {'p', {'o', '0', '-', '[', ';', 'l'}},
+    {'[', {'p', '-', '=', ']', '\'', ';'}},
+    {']', {'[', '=', '\\', '\''}},
+    {'\\', {']'}},
+
+    {'a', {'q', 'w', 's', 'z'}},
+    {'s', {'a', 'w', 'e', 'd', 'x', 'z'}},
+    {'d', {'s', 'e', 'r', 'f', 'c', 'x'}},
+    {'f', {'d', 'r', 't', 'g', 'v', 'c'}},
+    {'g', {'f', 't', 'y', 'h', 'b', 'v'}},
+    {'h', {'g', 'y', 'u', 'j', 'n', 'b'}},
+    {'j', {'h', 'u', 'i', 'k', 'm', 'n'}},
+    {'k', {'j', 'i', 'o', 'l', ',', 'm'}},
+    {'l', {'k', 'o', 'p', ';', '.', ','}},
+    {';', {'l', 'p', '[', '\'', '/', '.'}},
+    {'\'', {';', '[', ']', '/'}},
+
+    {'z', {'a', 's', 'x'}},
+    {'x', {'z', 's', 'd', 'c'}},
+    {'c', {'x', 'd', 'f', 'v', ' '}},
+    {'v', {'c', 'f', 'g', 'b', ' '}},
+    {'b', {'v', 'g', 'h', 'n', ' '}},
+    {'n', {'b', 'h', 'j', 'm', ' '}},
+    {'m', {'n', 'j', 'k', ',', ' '}},
+    {',', {'m', 'k', 'l', '.'}},
+    {'.', {',', 'l', ';', '/'}},
+    {'/', {';', '\'', '.'}},
+
+    {'~', {'`', '!'}},
+    {'!', {'1', '~', '@', 'Q'}},
+    {'@', {'2', '!', '#', 'W', 'Q'}},
+    {'#', {'3', '@', '$', 'E', 'W'}},
+    {'$', {'4', '#', '%', 'R', 'E'}},
+    {'%', {'5', '$', '^', 'T', 'R'}},
+    {'^', {'6', '%', '&', 'Y', 'T'}},
+    {'&', {'7', '^', '*', 'U', 'Y'}},
+    {'*', {'8', '&', '(', 'I', 'U'}},
+    {'(', {'9', '*', ')', 'O', 'I'}},
+    {')', {'0', '(', '_', 'P', 'O'}},
+    {'_', {'-', ')', '+', '{', 'P'}},
+    {'+', {'=', '_', '}', '{'}},
+
+    {'Q', {'q', '!', '@', 'W', 'a'}},
+    {'W', {'w', 'Q', '@', '#', 'e', 's', 'a'}},
+    {'E', {'e', 'W', '#', '$', 'r', 'd', 's'}},
+    {'R', {'r', 'E', '$', '%', 't', 'f', 'd'}},
+    {'T', {'t', 'R', '%', '^', 'y', 'g', 'f'}},
+    {'Y', {'y', 'T', '^', '&', 'u', 'h', 'g'}},
+    {'U', {'u', 'Y', '&', '*', 'i', 'j', 'h'}},
+    {'I', {'i', 'U', '*', '(', 'o', 'k', 'j'}},
+    {'O', {'o', 'I', '(', ')', 'p', 'l', 'k'}},
+    {'P', {'p', 'O', ')', '_', '[', ';', 'l'}},
+    {'{', {'[', 'P', '_', '+', ']', '\'', ';'}},
+    {'}', {']', '{', '+', '|', '"'}},
+    {'|', {'\\', '}'}},
+
+    {'A', {'a', 'Q', 'W', 'S', 'Z'}},
+    {'S', {'s', 'A', 'W', 'E', 'D', 'X', 'z'}},
+    {'D', {'d', 'S', 'E', 'R', 'F', 'C', 'x'}},
+    {'F', {'f', 'D', 'R', 'T', 'G', 'V', 'c'}},
+    {'G', {'g', 'F', 'T', 'Y', 'H', 'B', 'v'}},
+    {'H', {'h', 'G', 'Y', 'U', 'J', 'N', 'b'}},
+    {'J', {'j', 'H', 'U', 'I', 'K', 'M', 'n'}},
+    {'K', {'k', 'J', 'I', 'O', 'L', '<', 'm'}},
+    {'L', {'l', 'K', 'O', 'P', ':', '>', ','}},
+    {':', {';', 'L', 'P', '{', '"', '?', '>'}},
+    {'"', {'\'', ':', '{', '}', '?'}},
+
+    {'Z', {'z', 'A', 'S', 'X'}},
+    {'X', {'x', 'Z', 'S', 'D', 'C'}},
+    {'C', {'c', 'X', 'D', 'F', 'V'}},
+    {'V', {'v', 'C', 'F', 'G', 'B'}},
+    {'B', {'b', 'V', 'G', 'H', 'N'}},
+    {'N', {'n', 'B', 'H', 'J', 'M'}},
+    {'M', {'m', 'N', 'J', 'K', '<'}},
+    {'<', {',', 'M', 'K', 'L', '>'}},
+    {'>', {'.', '<', 'L', ':', '?'}},
+    {'?', {'/', ':', '"', '>'}},
+});
 
 static paste_state state;
 
@@ -79,17 +181,11 @@ UINT StartAutoType(LPCWSTR pszText, typaste_config &config)
     return WM_PASTECHAR;
 }
 
-UINT AutoTypeChar()
+void ProcessChar(WCHAR c, typaste_config &config)
 {
-    if (!state.pasting || GetAsyncKeyState(VK_ESCAPE) < 0)
-    {
-        return WM_ENDPASTE;
-    }
-
-    typaste_config &config = state.config();
     LPBYTE sound = NULL;
 
-    switch (state.character())
+    switch (c)
     {
     case L'\n':
         sound = config.sound_config.enter_key();
@@ -102,16 +198,19 @@ UINT AutoTypeChar()
         break;
     }
 
-    switch (state.character())
+    switch (c)
     {
     case L'\r':
-        return NEXT_CHAR(state);
+        return;
     case L'\n':
         PressAndRelease(VK_RETURN, config.modifier_delay, config.key_delay(), sound);
-        return NEXT_CHAR(state);
+        return;
+    case L'\b':
+        PressAndRelease(VK_BACK, config.modifier_delay, config.key_delay(), sound);
+        return;
     case L'\t':
         PressAndRelease(VK_TAB, config.modifier_delay, config.key_delay(), sound);
-        return NEXT_CHAR(state);
+        return;
     }
 
     SHORT s = -1;
@@ -142,7 +241,7 @@ UINT AutoTypeChar()
                             SMTO_ABORTIFHUNG, 2000, &dwResult);
         Sleep(config.modifier_delay);
 
-        return NEXT_CHAR(state);
+        return;
     }
 
     bool modifierWasSet = state.last_flags & 1;
@@ -166,8 +265,33 @@ UINT AutoTypeChar()
     state.last_flags = flags;
 
     PressAndRelease(vk, config.modifier_delay, config.key_delay(), sound);
+}
 
-    return NEXT_CHAR(state);
+UINT AutoTypeChar()
+{
+    if (!state.pasting || GetAsyncKeyState(VK_ESCAPE) < 0)
+    {
+        return WM_ENDPASTE;
+    }
+
+    typaste_config &config = state.config();
+
+    WCHAR c = state.character();
+
+    if (config.make_typo())
+    {
+        WCHAR typo_c = typo_map.get_for(c);
+
+        if (typo_c != c) 
+        {
+            ProcessChar(typo_c, config);
+            ProcessChar('\b', config);
+        }
+    }
+
+    ProcessChar(c, config);
+
+    return state.next_character() ? WM_PASTECHAR : WM_ENDPASTE;
 }
 
 void EndAutoType() 

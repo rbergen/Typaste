@@ -1,7 +1,39 @@
 #include <vector>
 #include <random>
+#include <map>
+#include <string>
+#include <windows.h>
 
 using namespace std;
+
+typedef map<WCHAR, vector<WCHAR>> typo_map_base; 
+
+class typo_map_type 
+{
+    mt19937 gen;
+    typedef uniform_int_distribution<> int_dist;
+    typedef int_dist::param_type int_dist_params;
+    int_dist dist;
+    typo_map_base inner_map;
+    
+public:
+    typo_map_type(typo_map_base map) :
+        gen(random_device()()),
+        dist(),
+        inner_map(map)
+    {}
+
+    WCHAR get_for(WCHAR c)
+    {
+        auto element = inner_map.find(c);
+
+        if (element == inner_map.end())
+            return c;
+        
+        auto candidates = element->second;
+        return candidates[dist(gen, int_dist_params(0, candidates.size() - 1))];
+    }
+};
 
 class sound_config
 {
@@ -103,9 +135,13 @@ class typaste_config
 {
     mt19937 gen;
 
-    typedef uniform_int_distribution<DWORD> dword_dist;
-    typedef dword_dist::param_type dword_dist_params;
-    dword_dist dist;
+    typedef uniform_int_distribution<DWORD> dword_dist_type;
+    typedef dword_dist_type::param_type dword_dist_params;
+    dword_dist_type dword_dist;
+    bernoulli_distribution bern_dist;
+    typedef bernoulli_distribution::param_type bern_dist_params;
+
+    double typo_chance_value;
 
 public:
 
@@ -116,7 +152,10 @@ public:
         hotkey(defaultHotkey),
         gen(random_device()()),
         sound_config(gen),
-        dist() 
+        dword_dist(),
+        bern_dist(),
+        typo_chance_value(0.0),
+        make_typos(false) 
     {}
 
     DWORD min_key_delay;
@@ -124,11 +163,39 @@ public:
     DWORD modifier_delay;
     sound_config sound_config;
     WORD hotkey;
+    bool make_typos;
 
     DWORD key_delay() 
     {
         auto& delay_pair = minmax(min_key_delay, max_key_delay);
-        return dist(gen, dword_dist_params(delay_pair.first, delay_pair.second));
+        return dword_dist(gen, dword_dist_params(delay_pair.first, delay_pair.second));
+    }
+
+    wstring typo_chance()
+    {
+        return to_wstring(typo_chance_value);
+    }
+
+    wstring typo_chance(wstring new_value)
+    {
+        try 
+        {
+            typo_chance_value = stod(new_value);
+        }
+        catch(...)
+        {}
+
+        return typo_chance();
+    }
+
+    bool make_typo()
+    {
+        if (!make_typos)
+        {
+            return false;
+        }
+        
+        return bern_dist(gen, bern_dist_params(typo_chance_value));
     }
 };
 
