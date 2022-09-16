@@ -107,7 +107,7 @@ typo_map_type typo_map({
     {'?', {'/', ':', '"', '>'}},
 });
 
-static paste_state state;
+paste_state state;
 
 const UINT cMaxKL = 10;
 

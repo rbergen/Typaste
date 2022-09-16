@@ -30,8 +30,10 @@ public:
         auto element = inner_map.find(c);
 
         if (element == inner_map.end())
+        {
             return c;
-        
+        }
+
         auto candidates = element->second;
         return candidates[dist(gen, int_dist_params(0, candidates.size() - 1))];
     }
@@ -156,7 +158,7 @@ public:
         sound_config(gen),
         dword_dist(),
         bern_dist(),
-        typo_chance_value(0.0),
+        typo_chance_value(0.01),
         make_typos(false) 
     {}
 
@@ -175,14 +177,21 @@ public:
 
     wstring typo_chance()
     {
-        return to_wstring(typo_chance_value);
+        wstring result = to_wstring(typo_chance_value * 100);
+        result.erase(result.find_last_not_of(L"0") + 1);
+        return result;
     }
 
     wstring typo_chance(wstring new_value)
     {
         try 
         {
-            typo_chance_value = stod(new_value);
+            size_t idx;
+            double percentage = stod(new_value, &idx);
+            if (idx == new_value.length())
+            {
+                typo_chance_value =  percentage / 100;
+            }
         }
         catch(...)
         {}
@@ -192,12 +201,7 @@ public:
 
     bool make_typo()
     {
-        if (!make_typos)
-        {
-            return false;
-        }
-        
-        return bern_dist(gen, bern_dist_params(typo_chance_value));
+        return make_typos ? bern_dist(gen, bern_dist_params(typo_chance_value)) : false;
     }
 };
 

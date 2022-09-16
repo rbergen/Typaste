@@ -26,7 +26,7 @@ LANGUAGE LANG_ENGLISH, SUBLANG_DEFAULT
 // RT_DIALOG
 
 1 DIALOG 0, 0, 210, 135
-CAPTION "Typaste version 0.6.0-rvb by katahiromz & rbergen"
+CAPTION "Typaste version 0.6.1-rvb by katahiromz & rbergen"
 STYLE DS_CENTER | DS_MODALFRAME | WS_POPUPWINDOW | WS_CAPTION | WS_MINIMIZEBOX
 FONT 9, "Tahoma"
 {
@@ -37,7 +37,7 @@ FONT 9, "Tahoma"
     PUSHBUTTON "E&xit", IDCANCEL, 145, 115, 60, 14
 }
 
-2 DIALOG 0, 0, 279, 124
+2 DIALOG 0, 0, 279, 148
 CAPTION "Typaste Settings"
 STYLE DS_CENTER | DS_MODALFRAME | WS_POPUPWINDOW | WS_CAPTION
 FONT 9, "Tahoma"
@@ -50,13 +50,17 @@ FONT 9, "Tahoma"
     EDITTEXT edt4, 85, 23, 35, 14, ES_NUMBER
     RTEXT "&HotKey:", -1, 6, 43, 75, 11
     CONTROL "", edt2, "msctls_hotkey32", 0, 85, 42, 70, 14
-    LTEXT "&Sound:", -1, 8, 62, 28, 12
-    RADIOBUTTON "", rad1, 44, 61, 9, 14
+    LTEXT "&Sound:", -1, 8, 63, 28, 12
+    AUTORADIOBUTTON "", rad1, 44, 61, 9, 14, WS_TABSTOP
     COMBOBOX cmb1, 54, 62, 175, 300, CBS_NOINTEGRALHEIGHT | CBS_HASSTRINGS | CBS_AUTOHSCROLL | CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
     PUSHBUTTON "&Browse...", psh2, 233, 61, 44, 14
-    RADIOBUTTON "Random", rad2, 45, 74, 60, 14
-    DEFPUSHBUTTON "OK", IDOK, 80, 103, 60, 14
-    PUSHBUTTON "Cancel", IDCANCEL, 155, 103, 60, 14
+    AUTORADIOBUTTON "Random", rad2, 44, 75, 60, 14, WS_TABSTOP
+    RTEXT "Make typos:", -1, 39, 97, 40, 12
+    AUTOCHECKBOX "&Enable, with error rate: ", chx1, 85, 95, 84, 14
+    EDITTEXT edt5, 173, 96, 35, 14
+    LTEXT "%", -1, 211, 97, 8, 12
+    DEFPUSHBUTTON "OK", IDOK, 80, 125, 60, 14
+    PUSHBUTTON "Cancel", IDCANCEL, 155, 125, 60, 14
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -67,7 +71,7 @@ STRINGTABLE
 {
     IDS_README, "\\README.txt"
     IDS_DELETESETTINGS, "Do you want to delete Typaste settings?"
-    IDS_TITLETEXT, "Typaste version 0.6.0-rvb by katahiromz & rbergen"
+    IDS_TITLETEXT, "Typaste version 0.6.1-rvb by katahiromz & rbergen"
 }
 
 //////////////////////////////////////////////////////////////////////////////
