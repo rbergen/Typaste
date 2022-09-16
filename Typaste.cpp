@@ -114,6 +114,9 @@ BOOL Settings_OnInitDialog(HWND hwnd, HWND hwndFocus, LPARAM lParam)
 
     CheckRadioButton(hwnd, rad1, rad2, config.sound_config.random_key ? rad2 : rad1);
 
+    CheckDlgButton(hwnd, chx1, config.make_typos ? BST_CHECKED : BST_UNCHECKED);
+    SetDlgItemText(hwnd, edt5, config.typo_chance().c_str());
+
     HWND hCmb1 = GetDlgItem(hwnd, cmb1);
 
     for (auto& entry : config.sound_config.key_list)
@@ -147,6 +150,8 @@ BOOL Settings_Delete(HWND hwnd)
     RegDeleteKeyW(hKey, L"HotKey");
     RegDeleteKeyW(hKey, L"Sound");
     RegDeleteKeyW(hKey, L"SetSound");
+    RegDeleteKeyW(hKey, L"MakeTypos");
+    RegDeleteKeyW(hKey, L"TypoChance");
     RegCloseKey(hKey);
 
     LONG nError = RegDeleteKeyW(HKEY_CURRENT_USER,
@@ -211,6 +216,19 @@ BOOL Settings_Load(HWND hwnd)
         config.sound_config.random_key = !(dwData != 0);
     }
 
+    cbData = sizeof(DWORD);
+    if (ERROR_SUCCESS == RegQueryValueExW(hKey, L"MakeTypos", NULL, NULL, (LPBYTE)&dwData, &cbData))
+    {
+        config.make_typos = (dwData != 0);
+    }
+
+    cbData = sizeof(szText);
+    if (ERROR_SUCCESS == RegQueryValueExW(hKey, L"TypoChance", NULL, NULL, (LPBYTE)szText, &cbData))
+    {
+        StrTrimW(szText, L" \t\r\n");
+        config.typo_chance(szText);
+    }
+
     RegCloseKey(hKey);
     return TRUE;
 }
@@ -245,6 +263,12 @@ BOOL Settings_Save(HWND hwnd)
     dwData = config.sound_config.random_key ? 0 : 1;
     RegSetValueExW(hAppKey, L"SetSound", 0, REG_DWORD, (LPBYTE)&dwData, sizeof(DWORD));
 
+    dwData = config.make_typos ? 1 : 0;
+    RegSetValueExW(hAppKey, L"MakeTypos", 0, REG_DWORD, (LPBYTE)&dwData, sizeof(DWORD));
+
+    cbData = (config.typo_chance().length() + 1) * sizeof(WCHAR);
+    RegSetValueExW(hAppKey, L"TypoChance", 0, REG_SZ, (LPBYTE)config.typo_chance().c_str(), cbData);
+
     RegCloseKey(hAppKey);
     RegCloseKey(hCompanyKey);
     return TRUE;
@@ -264,6 +288,13 @@ void Settings_OnOK(HWND hwnd)
     config.sound_config.key.sound(LoadFile(szText));
 
     config.sound_config.random_key = IsDlgButtonChecked(hwnd, rad2) == BST_CHECKED;
+
+    config.make_typos = IsDlgButtonChecked(hwnd, chx1) == BST_CHECKED;
+    
+    GetDlgItemText(hwnd, edt5, szText, ARRAYSIZE(szText));
+    StrTrimW(szText, L" \t\r\n");
+    wstring sTypoChance = config.typo_chance(szText);
+    SetDlgItemText(hwnd, edt5, sTypoChance.c_str());
 
     Settings_Save(hwnd);
 
@@ -324,10 +355,6 @@ void Settings_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
         break;
     case psh2:
         Settings_OnPsh2(hwnd);
-        break;
-    case rad1:
-    case rad2:
-        CheckRadioButton(hwnd, rad1, rad2, id);
         break;
     }
 }
