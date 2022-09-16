@@ -217,7 +217,7 @@ void ProcessChar(WCHAR c, typaste_config &config)
     UINT i;
     for (i = 0; i < state.keyboard_layouts.size(); i++)
     {
-        s = VkKeyScanExW(state.character(), state.keyboard_layouts[i]);
+        s = VkKeyScanExW(c, state.keyboard_layouts[i]);
         if (s != -1)
             break;
     }
@@ -278,15 +278,14 @@ UINT AutoTypeChar()
 
     WCHAR c = state.character();
 
-    if (config.make_typo())
-    {
-        WCHAR typo_c = typo_map.get_for(c);
+    WCHAR typo_c = typo_map.get_for(c);
 
-        if (typo_c != c) 
-        {
-            ProcessChar(typo_c, config);
-            ProcessChar('\b', config);
-        }
+    if (typo_c != c && config.make_typo())
+    {
+        ProcessChar(typo_c, config);
+        Sleep(config.key_delay() * 2);
+        ProcessChar('\b', config);
+        Sleep(config.key_delay() * 2);
     }
 
     ProcessChar(c, config);

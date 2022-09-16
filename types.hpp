@@ -178,7 +178,7 @@ public:
     wstring typo_chance()
     {
         wstring result = to_wstring(typo_chance_value * 100);
-        result.erase(result.find_last_not_of(L"0") + 1);
+        result.erase(result.find_last_not_of(L".0") + 1);
         return result;
     }
 
