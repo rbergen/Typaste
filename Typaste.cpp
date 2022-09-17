@@ -395,7 +395,7 @@ void OnPsh2(HWND hwnd)
     *pch = 0;
 
     LoadStringW(NULL, IDS_README, szText, 64);
-    wcscat(szPath, szText);
+    wcscat_s(szPath, szText);
 
     ShellExecuteW(hwnd, NULL, szPath, NULL, NULL, SW_SHOWNORMAL);
 }
