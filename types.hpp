@@ -35,7 +35,7 @@ public:
         }
 
         auto candidates = element->second;
-        return candidates[dist(gen, int_dist_params(0, candidates.size() - 1))];
+        return candidates[dist(gen, int_dist_params(0, (int)candidates.size() - 1))];
     }
 };
 
@@ -111,7 +111,7 @@ public:
 
     LPBYTE get_key() 
     {
-        return random_key ? key_list[dist(gen, int_dist_params(0, key_list.size() - 1))].sound() : key.sound();
+        return random_key ? key_list[dist(gen, int_dist_params(0, (int)key_list.size() - 1))].sound() : key.sound();
     }
 
     LPBYTE enter_key() 

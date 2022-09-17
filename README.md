@@ -52,10 +52,14 @@ Please do not use this software for illegal purposes.
   - Add play sound feature.
 - 2022.08.28 ver.0.6.0-rvb
   - Resemble natural typing.
+- 2022.09.17 ver.0.6.1-rvb
+  - Add ability to inject simulated typos.
+- 2022.09.17 ver.0.6.2-rvb
+  - Address type conversion compiler warnings on 64-bit builds
 
 ## Contact Us
 
 - Katayama Hirofumi MZ (katahiromz)
   katayama.hirofumi.mz@gmail.com
-- Rutger van Bergen (rbergen), for changes implemented in version 0.6.0-rvb
+- Rutger van Bergen (rbergen), for changes implemented from version 0.6.0-rvb onwards
   rbergen@xs4all.nl

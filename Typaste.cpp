@@ -257,7 +257,7 @@ BOOL Settings_Save(HWND hwnd)
     DWORD dwData = config.hotkey;
     RegSetValueExW(hAppKey, L"HotKey", 0, REG_DWORD, (LPBYTE)&dwData, sizeof(DWORD));
 
-    DWORD cbData = (config.sound_config.key.file_name().length() + 1) * sizeof(WCHAR);
+    DWORD cbData = ((DWORD)config.sound_config.key.file_name().length() + 1) * sizeof(WCHAR);
     RegSetValueExW(hAppKey, L"Sound", 0, REG_SZ, (LPBYTE)config.sound_config.key.file_name().c_str(), cbData);
 
     dwData = config.sound_config.random_key ? 0 : 1;
@@ -266,7 +266,7 @@ BOOL Settings_Save(HWND hwnd)
     dwData = config.make_typos ? 1 : 0;
     RegSetValueExW(hAppKey, L"MakeTypos", 0, REG_DWORD, (LPBYTE)&dwData, sizeof(DWORD));
 
-    cbData = (config.typo_chance().length() + 1) * sizeof(WCHAR);
+    cbData = ((DWORD)config.typo_chance().length() + 1) * sizeof(WCHAR);
     RegSetValueExW(hAppKey, L"TypoChance", 0, REG_SZ, (LPBYTE)config.typo_chance().c_str(), cbData);
 
     RegCloseKey(hAppKey);
