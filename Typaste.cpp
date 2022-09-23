@@ -9,6 +9,7 @@ using namespace std;
 #define DEFAULT_HOTKEY MAKEWORD('V', HOTKEYF_CONTROL)
 #define HOTKEY_ID 0xDEDD
 #define LoadIfFound(sound, findname, filename)    if (_wcsicmp((findname), (filename)) == 0) sound = LoadFile(findname)
+#define DeleteSound(sound)  if (sound != NULL) delete[] sound
 
 HWND s_hwndMain = NULL;
 HICON s_hIcon = NULL;
@@ -472,6 +473,17 @@ void OnDestroy(HWND hwnd)
     EndAutoType();
 
     Settings_Save(hwnd);
+
+    auto soundConfig = config.sound_config;
+    DeleteSound(soundConfig.enter);
+    DeleteSound(soundConfig.space);
+    DeleteSound(soundConfig.modifier_down);
+    DeleteSound(soundConfig.modifier_up);
+    for (auto item : soundConfig.key_list) 
+    {
+        DeleteSound(item.second);
+    }
+
     PostQuitMessage(0);
 }
 
