@@ -60,7 +60,7 @@ public:
     {
         using key_data_pair::key_data_pair;
 
-        wstring& file_name() 
+        wstring& file_name()
         {
             return first;
         }
@@ -77,7 +77,7 @@ public:
             return first;
         }
 
-        LPBYTE sound()
+        LPBYTE sound() const
         {
             return second;
         }
@@ -169,13 +169,13 @@ public:
     WORD hotkey;
     bool make_typos;
 
-    DWORD key_delay() 
+    DWORD key_delay()
     {
         auto& delay_pair = minmax(min_key_delay, max_key_delay);
         return dword_dist(gen, dword_dist_params(delay_pair.first, delay_pair.second));
     }
 
-    wstring typo_chance()
+    wstring typo_chance() const
     {
         wstring result = to_wstring(typo_chance_value * 100);
         result.erase(result.find_last_not_of(L".0") + 1);
@@ -262,7 +262,7 @@ public:
         return ++text_index < text_str.length();
     }
 
-    WCHAR character()
+    WCHAR character() const
     {
         return text_index < text_str.length() ? text_str[text_index] : L'\0';
     }
