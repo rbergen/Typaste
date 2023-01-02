@@ -192,10 +192,15 @@ void ProcessChar(WCHAR c, typaste_config &config, bool partOfSequence = false)
         sound = config.sound_config.enter_key();
         break;
     case L' ':
-        sound = config.sound_config.space_key();
+        if (!partOfSequence)
+            sound = config.sound_config.space_key();
+        break;
+    case L'\t': 
+        sound = config.sound_config.get_key();
         break;
     default:
-        sound = config.sound_config.get_key();
+        if (!partOfSequence)
+            sound = config.sound_config.get_key();
         break;
     }
 
@@ -204,13 +209,13 @@ void ProcessChar(WCHAR c, typaste_config &config, bool partOfSequence = false)
     case L'\r':
         return;
     case L'\n':
-        PressAndRelease(VK_RETURN, config.modifier_delay, keyDelay, sound);
+        PressAndRelease(VK_RETURN, config.modifier_delay, config.key_delay(), sound);
         return;
     case L'\b':
         PressAndRelease(VK_BACK, config.modifier_delay, keyDelay, sound);
         return;
     case L'\t':
-        PressAndRelease(VK_TAB, config.modifier_delay, keyDelay, sound);
+        PressAndRelease(VK_TAB, config.modifier_delay, config.key_delay(), sound);
         return;
     }
 

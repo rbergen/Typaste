@@ -66,6 +66,8 @@ Please do not use this software for illegal purposes.
   - Add ability to inject simulated typos.
 - 2022.09.17 ver.0.6.2-rvb
   - Address type conversion compiler warnings on 64-bit builds
+- 2023.01.02 ver.0.6.3-rvb
+  - Speed up entry of sequences of more than 3 identical characters
 
 ## Contact Us
 
