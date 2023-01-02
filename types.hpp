@@ -219,7 +219,7 @@ public:
     LPBYTE modifier_down_sound;
     LPBYTE modifier_up_sound;
 
-    paste_state() 
+    paste_state()
     {
         clear();
     }
@@ -260,6 +260,27 @@ public:
         }
 
         return ++text_index < text_str.length();
+    }
+
+    bool part_of_sequence() 
+    {
+        WCHAR characters[5];
+
+        size_t peek_index = text_index - 2;
+        size_t text_length = text_str.length();
+        
+        characters[0] = (peek_index >= 0 && peek_index < text_length) ? text_str[peek_index] : L'\0';
+        peek_index++;
+        characters[1] = (peek_index >= 0 && peek_index < text_length) ? text_str[peek_index] : L'\0';
+        peek_index++;
+        characters[2] = peek_index < text_length ? text_str[peek_index] : L'\0';
+        peek_index++;
+        characters[3] = peek_index < text_length ? text_str[peek_index] : L'\0';
+        peek_index++;
+        characters[4] = peek_index < text_length ? text_str[peek_index] : L'\0';
+
+        return (characters[2] == characters[1] && (characters[2] == characters[0] || characters[2] == characters[3])) 
+            || (characters[2] == characters[3] && characters[2] == characters[4]);
     }
 
     WCHAR character() const

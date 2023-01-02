@@ -181,9 +181,10 @@ UINT StartAutoType(LPCWSTR pszText, typaste_config &config)
     return WM_PASTECHAR;
 }
 
-void ProcessChar(WCHAR c, typaste_config &config)
+void ProcessChar(WCHAR c, typaste_config &config, bool partOfSequence = false)
 {
     LPBYTE sound = NULL;
+    DWORD keyDelay = partOfSequence ? 0: config.key_delay();
 
     switch (c)
     {
@@ -203,13 +204,13 @@ void ProcessChar(WCHAR c, typaste_config &config)
     case L'\r':
         return;
     case L'\n':
-        PressAndRelease(VK_RETURN, config.modifier_delay, config.key_delay(), sound);
+        PressAndRelease(VK_RETURN, config.modifier_delay, keyDelay, sound);
         return;
     case L'\b':
-        PressAndRelease(VK_BACK, config.modifier_delay, config.key_delay(), sound);
+        PressAndRelease(VK_BACK, config.modifier_delay, keyDelay, sound);
         return;
     case L'\t':
-        PressAndRelease(VK_TAB, config.modifier_delay, config.key_delay(), sound);
+        PressAndRelease(VK_TAB, config.modifier_delay, keyDelay, sound);
         return;
     }
 
@@ -264,7 +265,7 @@ void ProcessChar(WCHAR c, typaste_config &config)
 
     state.last_flags = flags;
 
-    PressAndRelease(vk, config.modifier_delay, config.key_delay(), sound);
+    PressAndRelease(vk, config.modifier_delay, keyDelay, sound);
 }
 
 UINT AutoTypeChar()
@@ -277,10 +278,11 @@ UINT AutoTypeChar()
     typaste_config &config = state.config();
 
     WCHAR c = state.character();
+    bool partOfSequence = state.part_of_sequence();
 
     WCHAR typo_c = typo_map.get_for(c);
 
-    if (typo_c != c && config.make_typo())
+    if (!partOfSequence && typo_c != c && config.make_typo())
     {
         ProcessChar(typo_c, config);
         Sleep(config.key_delay() * 2);
@@ -288,7 +290,7 @@ UINT AutoTypeChar()
         Sleep(config.key_delay() * 2);
     }
 
-    ProcessChar(c, config);
+    ProcessChar(c, config, partOfSequence);
 
     return state.next_character() ? WM_PASTECHAR : WM_ENDPASTE;
 }
